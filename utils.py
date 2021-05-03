@@ -2,6 +2,14 @@
 import cv2 
 import numpy as np
 
+
+# Global Variable
+COLORS = dict()
+def __add_color(label):
+    if label not in COLORS.keys():
+        COLORS[label] = np.random.uniform(0, 255, size=(1, 3)).flatten()
+
+
 def draw_keypoints(image, kp):
     """
     Function to draw keypoints on the image.
@@ -34,13 +42,13 @@ def draw_detections(image, obj_label, confidence, bbox, mask=None):
     """
     clone = image.copy()
     # Choose a random color
-    color = np.random.uniform(0, 255, size=(1, 3)).flatten()
+    __add_color(obj_label)
 
     # Detection parameters
     (startX, startY, endX, endY) = bbox
 
     # Put rectangle around the objects detected
-    cv2.rectangle(clone, (startX, startY), (endX, endY), color, 2)
+    cv2.rectangle(clone, (startX, startY), (endX, endY), COLORS[obj_label], 2)
 
     # Put label and confidence
     y = startY - 15 if startY - 15 > 15 else startY + 15
@@ -53,7 +61,7 @@ def draw_detections(image, obj_label, confidence, bbox, mask=None):
         roi = clone[startY:endY, startX:endX]
         roi = roi[mask]
         # Color for the mask
-        blended = ((0.4 * color) + (0.6 * roi)).astype("uint8")
+        blended = ((0.4 * COLORS[obj_label]) + (0.6 * roi)).astype("uint8")
         clone[startY:endY, startX:endX][mask] = blended
         
     return clone
@@ -79,3 +87,57 @@ def draw_compare_features(image1, image2, kp1, kp2, goodmatches):
         flags = cv2.DrawMatchesFlags_DEFAULT)
     
     return cv2.drawMatchesKnn(image1,kp1,image2,kp2,goodmatches,None,**draw_params)
+
+def get_videotimestamp(cameraCapture):
+    """
+    Function to get the timestamps of the video. 
+
+    INPUT
+        cameraCapture(<class 'cv2.VideoCapture'>):    Video capture object for the video currenty read. 
+
+    RETURN
+        <str>
+        Current timestamp of the video in format H:M:S.MS
+    """
+    seconds = 0
+    minutes = 0
+    hours = 0
+    milliseconds = cameraCapture.get(cv2.CAP_PROP_POS_MSEC)
+    seconds = milliseconds//1000
+    milliseconds = milliseconds%1000
+    if seconds >= 60:
+        minutes = seconds//60
+        seconds = seconds % 60
+    if minutes >= 60:
+        hours = minutes//60
+        minutes = minutes % 60
+    return "{}:{}:{}.{}".format(int(hours), int(minutes), int(seconds), int(milliseconds))
+
+def pp_detectionlist(dectList):
+    """
+    Function to Pretty Print (PP) detection from single image.
+
+    INPUT
+        dectList(list): Output the list of dictonary with {label, confidence, box}
+    """
+    for detection in dectList:
+        obj = detection["label"]
+        confidence = detection["confidence"]
+        print("[DETECTED] {}: {:.2f}".format(obj, confidence))
+
+def draw_metadata(image, metadict):
+    """
+    Function to put textual data on the bottom of the screen
+
+    INPUT
+        image(numpy.ndarray):   Image on which the info is drawn.
+        metadict(dict):         Data on 
+    """
+    (height, width, channel) = image.shape
+    # loop over the info tuples and draw them on our frame
+    itr = 0
+    for k, v in metadict.items():
+        text = "{}: {}".format(k, v)
+        cv2.putText(image, text, (10, height - ((itr * 30) + 20)),
+                cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+        itr += 1
