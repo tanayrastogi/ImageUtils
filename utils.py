@@ -51,7 +51,7 @@ def draw_detections(image, obj_label, confidence, bbox, mask=None):
     cv2.rectangle(clone, (startX, startY), (endX, endY), COLORS[obj_label], 2)
 
     # Put label and confidence
-    y = startY - 15 if startY - 15 > 15 else startY + 15
+    y = startY - 10 if startY - 10 > 10 else startY + 10
     label = "{}: {:.2f}%".format(obj_label, confidence)
     cv2.putText(clone, label, (startX, y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
