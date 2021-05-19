@@ -141,3 +141,31 @@ def draw_metadata(image, metadict):
         cv2.putText(image, text, (10, height - ((itr * 30) + 20)),
                 cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
         itr += 1
+
+
+def draw_marker(image):
+    """
+    Function to draw XY-axis in image plane on the image.
+
+    INPUT
+        image(numpy.ndarray):   Image on which the info is drawn.
+    """
+    height, width, channel = image.shape
+
+    # Center of image
+    cx = int(width/2)
+    cy = int(height/2)
+    
+    # Draw Center of the Image
+    cv2.circle(image, (cx, cy),
+                5, (0, 0, 255), -1) 
+    # Draw line
+    cv2.line(image, (cx, 0), (cx, height),
+                (255, 0, 0), 1)
+    cv2.line(image, (0, cy), (width, cy),
+                (255, 0, 0), 1)
+    # Put Coordinates 
+    cv2.putText(image, "+X", (cx-50, 30), 
+                cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 1)
+    cv2.putText(image, "+Y", (10, cy), 
+                cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 1)
