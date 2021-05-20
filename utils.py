@@ -88,17 +88,20 @@ def draw_compare_features(image1, image2, kp1, kp2, goodmatches):
     
     return cv2.drawMatchesKnn(image1,kp1,image2,kp2,goodmatches,None,**draw_params)
 
-def get_videotimestamp(cameraCapture):
+def get_videotimestamp(cameraCapture, ret_type="str"):
     """
     Function to get the timestamps of the video. 
 
     INPUT
         cameraCapture(<class 'cv2.VideoCapture'>):    Video capture object for the video currenty read. 
+        ret_type(str):                                Return Type. Defines the type of return ("str", "datetime")
 
     RETURN
-        <str>
-        Current timestamp of the video in format H:M:S.MS
+        <str> or <datetime.datetime>
+        Current timestamp of the video either in string or datetime format, based on the type.
     """
+    import datetime
+
     seconds = 0
     minutes = 0
     hours = 0
@@ -111,7 +114,14 @@ def get_videotimestamp(cameraCapture):
     if minutes >= 60:
         hours = minutes//60
         minutes = minutes % 60
-    return "{}:{}:{}.{}".format(int(hours), int(minutes), int(seconds), int(milliseconds))
+    
+    ts = "{}:{}:{}.{}".format(int(hours), int(minutes), int(seconds), int(milliseconds))
+    if ret_type=="str":
+        return ts
+    elif ret_type=="datetime":
+        return datetime.datetime.strptime(ts, "%H:%M:%S.%f")
+    else:
+        raise ValueError("Choose either str or datetime as ret_type")
 
 def pp_detectionlist(dectList):
     """
@@ -179,10 +189,28 @@ def read_srt(filepath: str) -> list:
         filepath(str):  Path for file to read. 
 
     RETURN:
-        List of dictonary with keys (start_time, end_time, date, location)
+        List of dictonary with keys 
+                start_time: Start time of the data acq for video
+                end_time:   Start time of the data acq for video
+                date:       Timestamp of video
+                lat:        Latitude in degree
+                lng:        Longitude in degree
+                alt:        Altitude above sea-level in meters
+                heading:    Heading angle from North in degree
     """
+    import datetime
+    import re 
+    
     # Return list
     metaData = list()
+
+    # Check if the file exits
+    import os
+    if os.path.isfile(filepath):
+        pass 
+    else:
+        raise Exception("File does not exits!")
+
     with open(filepath, "r") as f:
         data = f.readlines()
 
@@ -191,10 +219,16 @@ def read_srt(filepath: str) -> list:
         try:
             if int(line) == counter:
                 counter += 1
-                metaData.append(dict(start_time= data[itr+1].split("-->")[0].split(" ")[0],
-                                     end_time  = data[itr+1].split("-->")[1].split("\n")[0],
+                loc    = re.split('[°\'\"\,\ ]', data[itr+3])
+                s_time = data[itr+1].split("-->")[0].split(" ")[0]
+                e_time = data[itr+1].split("-->")[1].split("\n")[0]  
+                metaData.append(dict(start_time= datetime.datetime.strptime(s_time, "%H:%M:%S,%f"),
+                                     end_time  = datetime.datetime.strptime(e_time, " %H:%M:%S,%f"),
                                      date      = data[itr+2].split("\n")[0],
-                                     location  = " ".join(data[itr+3].split("\n")[:-1])
+                                     lat       = float(int(loc[:3][0]) + int(loc[:3][1])/60 + int(loc[:3][2])/3600),
+                                     lng       = float(int(loc[5:8][0]) + int(loc[5:8][1])/60 + int(loc[5:8][2])/3600),
+                                     alt       = loc[10],
+                                     heading   = loc[12]
                                     )
                                 )
         except ValueError:
