@@ -169,3 +169,34 @@ def draw_marker(image):
                 cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 1)
     cv2.putText(image, "+Y", (10, cy), 
                 cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 1)
+
+
+def read_srt(filepath: str) -> list:
+    """Function to read the meta data from OpenCamera .srt files 
+    with location and timestamp data
+
+    INPUT:
+        filepath(str):  Path for file to read. 
+
+    RETURN:
+        List of dictonary with keys (start_time, end_time, date, location)
+    """
+    # Return list
+    metaData = list()
+    with open(filepath, "r") as f:
+        data = f.readlines()
+
+    counter = 1
+    for itr, line in enumerate(data):
+        try:
+            if int(line) == counter:
+                counter += 1
+                metaData.append(dict(start_time= data[itr+1].split("-->")[0].split(" ")[0],
+                                     end_time  = data[itr+1].split("-->")[1].split("\n")[0],
+                                     date      = data[itr+2].split("\n")[0],
+                                     location  = " ".join(data[itr+3].split("\n")[:-1])
+                                    )
+                                )
+        except ValueError:
+            pass
+    return metaData
