@@ -25,16 +25,19 @@ def draw_keypoints(image, kp):
     return cv2.drawKeypoints(image,kp ,image, flags=cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
 
 
-def draw_detections(image, obj_label, confidence, bbox, mask=None):
+def draw_detections(image, bbox, **kwargs):
     """
     Function to draw the rectangle, label and mask on the image.
 
     INPUT
         image(numpy.ndarray):   Image on which the info is drawn.
+        bbox(numpy.array)   :   4 corners of the bounding box on the image
+
+        KWARGS Elements
         obj_label(str)      :   Label to put on the top of the image.
         confidence(float)   :   Detection confidence from the object detection model.
-        bbox(numpy.array)   :   4 corners of the bounding box on the image
         mask(numpy.array)   :   Array of the mask
+        directions(float)   :   heading direction of the object
 
     RETURN
         <numpy.ndarray>
@@ -42,6 +45,10 @@ def draw_detections(image, obj_label, confidence, bbox, mask=None):
     """
     clone = image.copy()
     # Choose a random color
+    if "obj_label" not in kwargs:
+        obj_label= "_"
+    else:
+        obj_label = kwargs["obj_label"]
     __add_color(obj_label)
 
     # Detection parameters
@@ -52,18 +59,23 @@ def draw_detections(image, obj_label, confidence, bbox, mask=None):
 
     # Put label and confidence
     y = startY - 10 if startY - 10 > 10 else startY + 10
-    label = "{}: {:.2f}%".format(obj_label, confidence)
+    label = "{}".format(obj_label)
+    if "confidence" in kwargs:
+        label += " {:.2f}%".format(kwargs["confidence"])
+    if "direction" in kwargs:
+        label += " {}".format(kwargs["directions"]) + u"\N{DEGREE SIGN}"
     cv2.putText(clone, label, (startX, y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
     # If mask is there then put mask also in the image
-    if mask is not None:
+    if "mask" in kwargs:
+        mask = kwargs["mask"]
         # Put mask around the detection
         roi = clone[startY:endY, startX:endX]
         roi = roi[mask]
         # Color for the mask
         blended = ((0.4 * COLORS[obj_label]) + (0.6 * roi)).astype("uint8")
         clone[startY:endY, startX:endX][mask] = blended
-        
+    
     return clone
     
 def draw_compare_features(image1, image2, kp1, kp2, goodmatches):
@@ -234,3 +246,51 @@ def read_srt(filepath: str) -> list:
         except ValueError:
             pass
     return metaData
+
+
+# Malisiewicz et al.
+def non_max_suppression_fast(boxes, overlapThresh):
+	# if there are no boxes, return an empty list
+	if len(boxes) == 0:
+		return []
+	# if the bounding boxes integers, convert them to floats --
+	# this is important since we'll be doing a bunch of divisions
+	if boxes.dtype.kind == "i":
+		boxes = boxes.astype("float")
+	# initialize the list of picked indexes	
+	pick = []
+	# grab the coordinates of the bounding boxes
+	x1 = boxes[:,0]
+	y1 = boxes[:,1]
+	x2 = boxes[:,2]
+	y2 = boxes[:,3]
+	# compute the area of the bounding boxes and sort the bounding
+	# boxes by the bottom-right y-coordinate of the bounding box
+	area = (x2 - x1 + 1) * (y2 - y1 + 1)
+	idxs = np.argsort(y2)
+	# keep looping while some indexes still remain in the indexes
+	# list
+	while len(idxs) > 0:
+		# grab the last index in the indexes list and add the
+		# index value to the list of picked indexes
+		last = len(idxs) - 1
+		i = idxs[last]
+		pick.append(i)
+		# find the largest (x, y) coordinates for the start of
+		# the bounding box and the smallest (x, y) coordinates
+		# for the end of the bounding box
+		xx1 = np.maximum(x1[i], x1[idxs[:last]])
+		yy1 = np.maximum(y1[i], y1[idxs[:last]])
+		xx2 = np.minimum(x2[i], x2[idxs[:last]])
+		yy2 = np.minimum(y2[i], y2[idxs[:last]])
+		# compute the width and height of the bounding box
+		w = np.maximum(0, xx2 - xx1 + 1)
+		h = np.maximum(0, yy2 - yy1 + 1)
+		# compute the ratio of overlap
+		overlap = (w * h) / area[idxs[:last]]
+		# delete all indexes from the index list that have
+		idxs = np.delete(idxs, np.concatenate(([last],
+			np.where(overlap > overlapThresh)[0])))
+	# return only the bounding boxes that were picked using the
+	# integer data type
+	return boxes[pick].astype("int")
