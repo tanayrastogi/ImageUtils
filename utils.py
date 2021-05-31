@@ -126,8 +126,14 @@ def get_videotimestamp(cameraCapture, ret_type="str"):
     if minutes >= 60:
         hours = minutes//60
         minutes = minutes % 60
-    
-    ts = "{}:{}:{}.{}".format(int(hours), int(minutes), int(seconds), int(milliseconds))
+
+    if milliseconds < 10:
+        ts = "{}:{}:{}.00{}".format(int(hours), int(minutes), int(seconds), int(milliseconds))
+    elif milliseconds < 100:
+        ts = "{}:{}:{}.0{}".format(int(hours), int(minutes), int(seconds), int(milliseconds))
+    else: 
+        ts = "{}:{}:{}.{}".format(int(hours), int(minutes), int(seconds), int(milliseconds))
+
     if ret_type=="str":
         return ts
     elif ret_type=="datetime":
@@ -147,18 +153,18 @@ def pp_detectionlist(dectList):
         confidence = detection["confidence"]
         print("[DETECTED] {}: {:.2f}".format(obj, confidence))
 
-def draw_metadata(image, metadict):
+def draw_metadata(image, **kwargs):
     """
     Function to put textual data on the bottom of the screen
 
     INPUT
         image(numpy.ndarray):   Image on which the info is drawn.
-        metadict(dict):         Data on 
+        kwargs(dict):           Data on the image
     """
     (height, width, channel) = image.shape
     # loop over the info tuples and draw them on our frame
     itr = 0
-    for k, v in metadict.items():
+    for k, v in kwargs.items():
         text = "{}: {}".format(k, v)
         cv2.putText(image, text, (10, height - ((itr * 30) + 20)),
                 cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
