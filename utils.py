@@ -38,6 +38,7 @@ def draw_detections(image, bbox, **kwargs):
         confidence(float)   :   Detection confidence from the object detection model.
         mask(numpy.array)   :   Array of the mask
         directions(float)   :   heading direction of the object
+        color(tuple)        :   color of the box
 
     RETURN
         <numpy.ndarray>
@@ -55,7 +56,10 @@ def draw_detections(image, bbox, **kwargs):
     (startX, startY, endX, endY) = bbox
 
     # Put rectangle around the objects detected
-    cv2.rectangle(clone, (startX, startY), (endX, endY), COLORS[obj_label], 2)
+    if "color" not in kwargs:
+        cv2.rectangle(clone, (startX, startY), (endX, endY), COLORS[obj_label], 2)
+    else:
+        cv2.rectangle(clone, (startX, startY), (endX, endY), kwargs["color"], 2)
 
     # Put label and confidence
     y = startY - 10 if startY - 10 > 10 else startY + 10
@@ -300,3 +304,18 @@ def non_max_suppression_fast(boxes, overlapThresh):
 	# return only the bounding boxes that were picked using the
 	# integer data type
 	return boxes[pick].astype("int")
+
+
+def draw_polygon(frame, pts, color=None): # Polygon Box
+    bbox = np.array(pts, np.int32)
+    bbox = bbox.reshape((-1,1,2))
+    if color is None:
+        cv2.polylines(frame, [bbox], True, (0, 0, 255), 1)
+    else:
+        cv2.polylines(frame, [bbox], True, color ,1)
+
+
+def draw_line(frame, pts): # Line
+    point1 = pts[0] 
+    point2 = pts[1]
+    cv2.line(frame, point1, point2, (0, 0, 255), 1)
