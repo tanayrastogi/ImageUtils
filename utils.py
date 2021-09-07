@@ -38,6 +38,7 @@ def draw_detections(image, bbox, **kwargs):
         confidence(float)   :   Detection confidence from the object detection model.
         mask(numpy.array)   :   Array of the mask
         directions(float)   :   heading direction of the object
+        id(int):            :   object ID used for tracking
         color(tuple)        :   color of the box
 
     RETURN
@@ -319,3 +320,14 @@ def draw_line(frame, pts): # Line
     point1 = pts[0] 
     point2 = pts[1]
     cv2.line(frame, point1, point2, (0, 0, 255), 1)
+
+
+def get_fps(video):
+    # Find OpenCV version
+    (major_ver, minor_ver, subminor_ver) = (cv2.__version__).split('.')
+    # With webcam get(CV_CAP_PROP_FPS) does not work.
+    if int(major_ver)  < 3 :
+        return video.get(cv2.cv.CV_CAP_PROP_FPS)
+    else :
+        return video.get(cv2.CAP_PROP_FPS)
+        
