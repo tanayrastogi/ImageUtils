@@ -330,4 +330,12 @@ def get_fps(video):
         return video.get(cv2.cv.CV_CAP_PROP_FPS)
     else :
         return video.get(cv2.CAP_PROP_FPS)
-        
+    
+
+def get_number_of_frames(video):
+    video.set(cv2.CAP_PROP_POS_AVI_RATIO,1)
+    num_of_frames = video.get(cv2.CAP_PROP_POS_FRAMES)
+    video.set(cv2.CAP_PROP_POS_AVI_RATIO,0)
+    assert video.get(cv2.CAP_PROP_POS_FRAMES) == float(0); "Some error in getting number of frames!"
+
+    return num_of_frames
