@@ -339,3 +339,96 @@ def get_number_of_frames(video):
     assert video.get(cv2.CAP_PROP_POS_FRAMES) == float(0); "Some error in getting number of frames!"
 
     return num_of_frames
+
+
+
+
+def distance_from_camera(bbox, image_shape, real_life_size):
+    """
+    Calculates the distance of the object from the camera.
+
+    PARMS
+    bbox: Bounding box [px]
+    image_shape: Size of the image (width, height) [px]
+    real_life_size: Height of the object in real world [cms]
+    """
+
+    ## REFERENCE FOR GOPRO
+    # Focal Length and Image Size
+    # https://clicklikethis.com/gopro-sensor-size/
+    # https://gethypoxic.com/blogs/technical/gopro-hero9-teardown
+    # https://www.sony-semicon.co.jp/products/common/pdf/IMX677-AAPH5_AAPJ_Flyer.pdf
+    # http://photoseek.com/2013/compare-digital-camera-sensor-sizes-full-frame-35mm-aps-c-micro-four-thirds-1-inch-type/
+    # https://www.gophotonics.com/products/cmos-image-sensors/sony-corporation/21-209-imx677
+
+    # Camera Sensor:                    Sony IMX677
+    # Camera Sensor array pixel size:   1.12[um] X 1.12[um]
+    # Camera Resolution:                5663(H) X 4223(V)
+    # Camera Sensor dimensions:         6.343[mm/H] X 4.730[mm/V] 
+    # Camera Focal Length:              2.92 mm  
+
+    #     5633(px)
+    #  4  -------------------
+    #  2  -                 -
+    #  2  -                 -
+    #  3  -                 -
+    #  (p -                 -
+    #  x) -                 -
+    #     -------------------
+
+    # REFERNCE FOR CALCULATION
+    # https://www.scantips.com/lights/subjectdistance.html
+
+    # GoPro Intrensic Camera Settings #
+    ###################################
+    focal_length_mm = 5.21
+    unit_pixel_length = 1.12
+    sen_res = (5663, 4223) 
+    sensor_height_mm = (unit_pixel_length*sen_res[1])/1000 
+    sensor_width_mm = (unit_pixel_length*sen_res[0])/1000
+    ###################################
+
+    # Calculation
+    image_height_px = image_shape[0]
+    image_width_px  = image_shape[1]
+
+    (startX, startY, endX, endY) = bbox
+    height_of_object_px = endY - startY
+    width_of_object_px  = endX - startX
+
+    obj_height_on_sensor_mm = (sensor_height_mm * height_of_object_px) / image_height_px
+    return (real_life_size * focal_length_mm)/obj_height_on_sensor_mm
+
+
+
+def lat_lng_from_camera(origin, heading_angle, distance, 
+                        EARTH_RADIUS_KMS = 6378.1):
+    """
+    Calculates the latitude and longitude (in degree) of the object from the camera.
+
+    PARMS
+    origin: Origin point in (lat, lng)
+    heading_angle: Heading angle of the object from the camera
+    distance: Distance of the object from camera [kms]
+    EARTH_RADIUS_KMS: Radius of earth in kms
+    """
+    lat1 = math.radians(origin[0])
+    lng1 = math.radians(origin[1])
+    brng = math.radians(heading_angle)   
+
+    lat2 = math.asin(math.sin(lat1)*math.cos(distance/EARTH_RADIUS_KMS) + math.cos(lat1)*math.sin(distance/EARTH_RADIUS_KMS)*math.cos(brng))
+    lng2 = lng1 + math.atan2(math.sin(brng)*math.sin(distance/EARTH_RADIUS_KMS)*math.cos(lat1), math.cos(distance/EARTH_RADIUS_KMS)-math.sin(lat1)*math.sin(lat2))
+    
+    lat2 = math.degrees(lat2)
+    lng2 = math.degrees(lng2)
+    return (lat2, lng2)
+
+def get_latlon(image, detection, origin, heading_angle):
+
+    # Distance in cms
+    # Assumed height of car
+    real_life_size = 150 #cms
+    distance = distance_from_camera(detection["bbox"], image.shape, real_life_size)
+
+    # Latitude and logitude of object
+    return lat_lng_from_camera(origin, heading_angle, distance)
