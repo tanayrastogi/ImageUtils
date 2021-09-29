@@ -432,3 +432,22 @@ def get_latlon(image, detection, origin, heading_angle):
 
     # Latitude and logitude of object
     return lat_lng_from_camera(origin, heading_angle, distance)
+
+
+
+def heading(start_point, end_point):
+    # Reference: 
+    # https://www.igismap.com/formula-to-find-bearing-or-heading-angle-between-two-points-latitude-longitude/
+    # https://www.movable-type.co.uk/scripts/latlong.html
+    
+    # Convert all the points to
+    start_point["lat"] = math.radians(start_point["lat"])
+    start_point["lon"] = math.radians(start_point["lon"])
+    end_point["lat"] = math.radians(end_point["lat"])
+    end_point["lon"] = math.radians(end_point["lon"])
+
+    dL = end_point["lon"]-start_point["lon"]
+    Y = (math.cos(start_point["lat"])*math.sin(end_point["lat"])) - (math.sin(start_point["lat"])*math.cos(end_point["lat"])*math.cos(dL))
+    X = math.cos(end_point["lat"])*math.sin(dL)
+   
+    return math.degrees(math.atan2(X, Y))           # in degrees
