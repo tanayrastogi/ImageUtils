@@ -430,7 +430,7 @@ def get_latlon(image, detection, origin, heading_angle,
     distance = distance_from_camera(detection["bbox"], image.shape, real_life_size)
 
     # Latitude and logitude of object
-    return lat_lng_from_camera(origin, heading_angle, distance/100000)
+    return lat_lng_from_camera(origin, heading_angle, distance)
 
 
 
