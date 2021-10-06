@@ -423,12 +423,68 @@ def lat_lng_from_camera(origin, heading_angle, distance,
     lng2 = math.degrees(lng2)
     return (lat2, lng2)
 
-def get_latlon(image, detection, origin, heading_angle):
-
+def get_latlon(image, detection, origin, heading_angle,
+               real_life_size=150):
+    
     # Distance in cms
-    # Assumed height of car
-    real_life_size = 150 #cms
     distance = distance_from_camera(detection["bbox"], image.shape, real_life_size)
 
     # Latitude and logitude of object
-    return lat_lng_from_camera(origin, heading_angle, distance)
+    return lat_lng_from_camera(origin, heading_angle, distance/100000)
+
+
+
+def heading(start_point, end_point):
+    # Reference: 
+    # https://www.igismap.com/formula-to-find-bearing-or-heading-angle-between-two-points-latitude-longitude/
+    # https://www.movable-type.co.uk/scripts/latlong.html
+    
+    # Convert all the points to
+    start_point["lat"] = math.radians(start_point["lat"])
+    start_point["lon"] = math.radians(start_point["lon"])
+    end_point["lat"] = math.radians(end_point["lat"])
+    end_point["lon"] = math.radians(end_point["lon"])
+
+    dL = end_point["lon"]-start_point["lon"]
+    Y = (math.cos(start_point["lat"])*math.sin(end_point["lat"])) - (math.sin(start_point["lat"])*math.cos(end_point["lat"])*math.cos(dL))
+    X = math.cos(end_point["lat"])*math.sin(dL)
+   
+    return math.degrees(math.atan2(X, Y))           # in degrees
+
+
+def heading_from_camera(bbox, image_shape):
+    """
+    Calculates the heading angle (in degree) of the object from the camera.
+
+    PARMS
+    bbox: Bounding box [px]
+    image_shape: Size of the image (width, height) [px]
+    """
+    # GoPro Intrensic Camera Settings #
+    ###################################
+    focal_length_mm = 5.21
+    unit_pixel_length = 1.12
+    sen_res = (5663, 4223) 
+    sensor_height_mm = (unit_pixel_length*sen_res[1])/1000 
+    sensor_width_mm = (unit_pixel_length*sen_res[0])/1000
+    ###################################
+
+    # Image Center
+    (cX, cY) = image_shape[1]/2, image_shape[0]/2 
+    # Object Center
+    (startX, startY, endX, endY) = bbox
+    (centerX, centerY) = (startX+endX)/2, (startY+endY)/2
+
+    # Distance between the two points
+    distance = math.sqrt((centerX - cX)**2 + (centerY - cY)**2)
+
+    # Focal Length in px
+    img_width_px = image_shape[1]
+    f_px = (focal_length_mm * img_width_px)/ (sensor_width_mm)
+
+    # Heading Angle
+    angle = math.degrees(math.asin(distance/f_px))
+    if centerX > cX:
+        return angle
+    else:
+        return -angle
